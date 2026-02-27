@@ -1,0 +1,226 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// 用户表
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  username      String    @unique
+  password      String
+  avatar        String?
+  role          String    @default("user") // admin, user
+  bio           String?   @db.Text
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  posts         Post[]
+  comments      Comment[]
+  likes         Like[]
+  views         View[]
+}
+
+// 文章表
+model Post {
+  id            String    @id @default(uuid())
+  title         String
+  slug          String    @unique
+  content       String    @db.LongText
+  excerpt       String?   @db.Text
+  coverImage    String?
+  status        String    @default("draft") // draft, published
+  authorId      String
+  categoryId    String?
+  viewCount     Int       @default(0)
+  likeCount     Int       @default(0)
+  commentCount  Int       @default(0)
+  isFeatured    Boolean   @default(false)
+  publishedAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  author        User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  category      Category? @relation(fields: [categoryId], references: [id])
+  tags          PostTag[]
+  comments      Comment[]
+  likes         Like[]
+  views         View[]
+  
+  @@index([status, publishedAt])
+  @@index([authorId])
+  @@index([categoryId])
+}
+
+// 分类表
+model Category {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  slug        String    @unique
+  description String?   @db.Text
+  postCount   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  posts       Post[]
+}
+
+// 标签表
+model Tag {
+  id        String    @id @default(uuid())
+  name      String    @unique
+  slug      String    @unique
+  postCount Int       @default(0)
+  createdAt DateTime  @default(now())
+  
+  posts     PostTag[]
+}
+
+// 文章标签关联表
+model PostTag {
+  id        String   @id @default(uuid())
+  postId    String
+  tagId     String
+  createdAt DateTime @default(now())
+  
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag       Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  
+  @@unique([postId, tagId])
+  @@index([postId])
+  @@index([tagId])
+}
+
+// 评论表
+model Comment {
+  id        String   @id @default(uuid())
+  content   String   @db.Text
+  authorId  String?
+  postId    String
+  parentId  String?
+  status    String   @default("pending") // pending, approved, spam
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  author    User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  parent    Comment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[] @relation("CommentReplies")
+  
+  @@index([postId, status])
+  @@index([authorId])
+}
+
+// 点赞表
+model Like {
+  id        String   @id @default(uuid())
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, postId])
+  @@index([postId])
+}
+
+// 访问记录表
+model View {
+  id        String   @id @default(uuid())
+  postId    String
+  userId    String?
+  ip        String?
+  userAgent String?  @db.Text
+  createdAt DateTime @default(now())
+  
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  @@index([postId])
+  @@index([createdAt])
+}
+
+// 项目表
+model Project {
+  id          String   @id @default(uuid())
+  title       String
+  slug        String   @unique
+  description String   @db.Text
+  content     String?  @db.LongText
+  coverImage  String?
+  demoUrl     String?
+  repoUrl     String?
+  techStack   String   @db.Text // JSON array
+  status      String   @default("completed") // completed, in-progress, planned
+  featured    Boolean  @default(false)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([featured, order])
+}
+
+// 留言表
+model Message {
+  id        String   @id @default(uuid())
+  name      String
+  email     String?
+  content   String   @db.Text
+  status    String   @default("pending") // pending, approved, spam
+  createdAt DateTime @default(now())
+  
+  @@index([status, createdAt])
+}
+
+// 技能表
+model Skill {
+  id          String   @id @default(uuid())
+  name        String
+  category    String   // frontend, backend, tool, other
+  level       Int      // 1-100
+  years       Float?
+  icon        String?
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([category, order])
+}
+
+// 工作经历表
+model Experience {
+  id          String   @id @default(uuid())
+  title       String
+  company     String
+  location    String?
+  startDate   DateTime
+  endDate     DateTime?
+  current     Boolean  @default(false)
+  description String   @db.Text
+  skills      String?  @db.Text // JSON array
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([startDate])
+}
+
+// 访问统计表
+model Analytics {
+  id        String   @id @default(uuid())
+  date      DateTime @db.Date
+  visits    Int      @default(0)
+  pageViews Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@unique([date])
+}
