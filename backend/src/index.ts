@@ -99,10 +99,10 @@ app.use(notFound);
 app.use(errorHandler);
 
 // 启动服务器
-app.listen(PORT, () => {
-  console.log(`🚀 服务器运行在 http://localhost:${PORT}`);
-  console.log(`📡 API 端点: http://localhost:${PORT}${API_PREFIX}`);
-  console.log(`🏥 健康检查: http://localhost:${PORT}/health`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 服务器运行在 http://0.0.0.0:${PORT}`);
+  console.log(`📡 API 端点: http://0.0.0.0:${PORT}${API_PREFIX}`);
+  console.log(`🏥 健康检查: http://0.0.0.0:${PORT}/health`);
 });
 
 export default app;
